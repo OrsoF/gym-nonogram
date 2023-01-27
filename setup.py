@@ -20,12 +20,6 @@ with open('requirements.txt', 'r') as f:
 with open('README.md') as f:
     README = f.read()
 
-if os.path.isfile('VERSION'):
-  with open('VERSION') as f:
-    VERSION = f.read()
-else:
-  VERSION = os.environ.get('TRAVIS_PULL_REQUEST_BRANCH') or os.environ.get('TRAVIS_BRANCH') or 'dev'
-
 setup(name='gym-nonogram',
       description='OpenAI Gym Environment for Nonogram',
       long_description=README,
