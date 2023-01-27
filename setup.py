@@ -17,7 +17,7 @@ if CURRENT_PYTHON < MIN_PYTHON:
 with open('requirements.txt', 'r') as f:
     install_requires = f.readlines()
 
-with open('README.rst') as f:
+with open('README.md') as f:
     README = f.read()
 
 if os.path.isfile('VERSION'):
