@@ -38,6 +38,7 @@ def test_env_reset_and_step():
     observation, info = env.reset()
 
     assert observation.shape == (5, 5)
+    assert env.observation_space.contains(observation)
     assert info == {}
 
     action = (0, 0, int(env.solution_grid[env.small_grid_size, env.small_grid_size]))
@@ -48,3 +49,14 @@ def test_env_reset_and_step():
     assert not truncated
     assert info == {}
     assert observation[env.small_grid_size, env.small_grid_size] > 0
+
+
+def test_env_truncates_at_max_step():
+    env = Nonogram(central_grid_size=3, seed=1, max_step=1)
+    env.reset()
+
+    observation, reward, terminated, truncated, info = env.step((0, 0, 1))
+
+    assert env.observation_space.contains(observation)
+    assert not terminated
+    assert truncated

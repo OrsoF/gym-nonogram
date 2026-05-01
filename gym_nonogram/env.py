@@ -28,8 +28,8 @@ def generate_left_top_grids(central_grid: np.ndarray) -> tuple[np.ndarray, np.nd
     """
     grid_size = central_grid.shape[0]
 
-    left_grid = np.zeros((grid_size, grid_size // 2 + 1))
-    top_grid = np.zeros((grid_size // 2 + 1, grid_size))
+    left_grid = np.zeros((grid_size, grid_size // 2 + 1), dtype=np.int8)
+    top_grid = np.zeros((grid_size // 2 + 1, grid_size), dtype=np.int8)
 
     for i in range(grid_size):
         res_horizontal = generate_count(central_grid[i])
@@ -52,7 +52,7 @@ def left_top_central_grid_to_extended_grid(
     extended_grid_size = central_grid_size + small_grid_size
     assert left_grid.shape == (central_grid_size, small_grid_size)
     assert top_grid.shape == (small_grid_size, central_grid_size)
-    extended_grid = np.zeros((extended_grid_size, extended_grid_size))
+    extended_grid = np.zeros((extended_grid_size, extended_grid_size), dtype=np.int8)
     extended_grid[small_grid_size:, small_grid_size:] = central_grid
     extended_grid[small_grid_size:, :small_grid_size] = left_grid
     extended_grid[:small_grid_size, small_grid_size:] = top_grid
@@ -68,7 +68,7 @@ def generate_central_grid(size: int, proportion: float, seed: int = 0) -> np.nda
         0 <= proportion <= 1
     ), "Proposition of non zero entries should be between 0 and 1."
     rng = np.random.default_rng(seed)
-    central_grid = rng.binomial(1, proportion, size=(size, size))
+    central_grid = rng.binomial(1, proportion, size=(size, size)).astype(np.int8)
     for row in central_grid:
         if np.max(row) == 0:
             row[rng.integers(0, size)] = 1
@@ -100,8 +100,10 @@ class Nonogram(Env):
             (Discrete(central_grid_size), Discrete(central_grid_size), Discrete(2))
         )  # First coord, second coord, action
         self.observation_space = Box(
-            low=np.zeros((self.extended_grid_size, self.extended_grid_size)),
-            high=2 * np.ones((self.extended_grid_size, self.extended_grid_size)),
+            low=np.zeros((self.extended_grid_size, self.extended_grid_size), dtype=np.int8),
+            high=self.central_grid_size
+            * np.ones((self.extended_grid_size, self.extended_grid_size), dtype=np.int8),
+            dtype=np.int8,
         )
 
     def render(self):
