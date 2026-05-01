@@ -1,33 +1,7 @@
 from gymnasium import Env
 from gymnasium.spaces import Discrete, Box, Tuple
 import numpy as np
-from scipy.stats import bernoulli
 
-import numpy as np
-
-
-def remove_zeros(line: list) -> list:
-    """
-    Remove all the zeros at the beginning of a list.
-    """
-    if not len(line):  # If line == []
-        return line
-    elif line[0]:  # If line[0] == 1
-        return line
-    else:
-        return remove_zeros(line[1:])
-
-
-def count_ones_and_remove(line: list, count=0):
-    """
-    Count the number of 1 at the beginning of the list.
-    """
-    if not len(line):  # If line == []
-        return line, count
-    elif not line[0]:  # If line[0] == 0
-        return line, count
-    else:  # line[0] is equal to 1
-        return count_ones_and_remove(line[1:], count + 1)
 
 
 def generate_count(line: list) -> list:
@@ -35,11 +9,15 @@ def generate_count(line: list) -> list:
     Count the number of ones in a row for each series of 1.
     """
     result = []
-    while len(line):
-        line = remove_zeros(line)
-        line, count = count_ones_and_remove(line)
-        if count:
+    count = 0
+    for value in line:
+        if value:
+            count += 1
+        elif count:
             result.append(count)
+            count = 0
+    if count:
+        result.append(count)
     return result
 
 
@@ -81,7 +59,7 @@ def left_top_central_grid_to_extended_grid(
     return extended_grid
 
 
-def generate_central_grid(size: int, proportion: float, seed: float = 0) -> np.ndarray:
+def generate_central_grid(size: int, proportion: float, seed: int = 0) -> np.ndarray:
     """
     This function generate a random grid that determines a drawing in nonogram.
     """
@@ -89,19 +67,19 @@ def generate_central_grid(size: int, proportion: float, seed: float = 0) -> np.n
     assert (
         0 <= proportion <= 1
     ), "Proposition of non zero entries should be between 0 and 1."
-    np.random.seed(seed)
-    central_grid = bernoulli.rvs(proportion, size=(size, size))
+    rng = np.random.default_rng(seed)
+    central_grid = rng.binomial(1, proportion, size=(size, size))
     for row in central_grid:
         if np.max(row) == 0:
-            row[np.random.randint(0, size)] = 1
+            row[rng.integers(0, size)] = 1
     return central_grid
 
 
-def generate_problem(size: int, proportion: float) -> np.ndarray:
+def generate_problem(size: int, proportion: float, seed: int = 0) -> np.ndarray:
     """
     Generate a full grid with left, top and drawing for nonogram.
     """
-    central_grid = generate_central_grid(size, proportion)
+    central_grid = generate_central_grid(size, proportion, seed)
     left_grid, top_grid = generate_left_top_grids(central_grid)
     extended_grid = left_top_central_grid_to_extended_grid(
         left_grid, top_grid, central_grid
@@ -127,9 +105,15 @@ class Nonogram(Env):
         )
 
     def render(self):
-        print(self.current_grid)
+        print(self.state)
 
-    def reset(self, central_grid_density=0.5):
+    def reset(self, seed=None, options=None, central_grid_density=0.5):
+        super().reset(seed=seed)
+        if seed is not None:
+            self.seed = seed
+        if options and "central_grid_density" in options:
+            central_grid_density = options["central_grid_density"]
+
         self.solution_grid = generate_problem(
             self.central_grid_size, central_grid_density, self.seed
         )
@@ -144,6 +128,7 @@ class Nonogram(Env):
 
     def step(self, action):
         row_coord, col_coord, action_choosed = action
+        self.steps_played += 1
 
         if (
             self.state[
@@ -206,12 +191,12 @@ class Nonogram(Env):
             truncated = True
             info = {}
 
-        if np.min(self.state[: self.central_grid_size]) == 1:
+        if np.min(self.state[self.small_grid_size :, self.small_grid_size :]) > 0:
             # End of the grid
             obs = self.state
             reward = 0
-            terminated = False
-            truncated = True
+            terminated = True
+            truncated = False
             info = {}
 
         return obs, reward, terminated, truncated, info

@@ -1,9 +1,8 @@
 import sys
-import os
 from setuptools import setup, find_packages
 
 CURRENT_PYTHON = sys.version_info[:2]
-MIN_PYTHON = (3, 6)
+MIN_PYTHON = (3, 8)
 
 if CURRENT_PYTHON < MIN_PYTHON:
     sys.stderr.write("""
@@ -23,7 +22,7 @@ with open('README.md') as f:
 setup(name='gym-nonogram',
       description='OpenAI Gym Environment for Nonogram',
       long_description=README,
-      long_description_content_type='text/x-rst',
+      long_description_content_type='text/markdown',
       version=0.1,
       url='https://github.com/OrsoF/gym-nonogram',
       author='Orso Forghieri',
