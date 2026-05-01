@@ -90,8 +90,8 @@ In the player grid:
 | Value | Meaning |
 | ---: | --- |
 | `0` | Unknown cell. |
-| `1` | Revealed empty solution cell. |
-| `2` | Revealed filled solution cell. |
+| `1` | Player marked the cell as empty. |
+| `2` | Player marked the cell as filled. |
 
 ## Action space
 
@@ -116,6 +116,7 @@ predicts a filled cell.
 | Wrong new prediction | `-20` |
 | Already revealed cell | `0` |
 | Third wrong prediction | `-100` |
+| Full grid with at least one wrong mark | `-100` |
 | `max_step` reached | `0` |
 | Puzzle completed | `0` |
 
@@ -124,7 +125,8 @@ predicts a filled cell.
 An episode terminates when:
 
 - the agent reaches three wrong predictions
-- all cells in the central player grid have been revealed
+- all cells in the central player grid match the hidden solution
+- all cells are marked but at least one mark is wrong
 
 An episode is truncated when:
 
@@ -200,7 +202,6 @@ The GitHub Actions workflow runs these checks on Python 3.10, 3.11, and 3.12.
 ## Current limitations
 
 - The default reward function is intentionally simple.
-- The environment reveals the true cell after every action, even when the
-  prediction is wrong.
+- Each cell can only be played once; there is no correction action yet.
 - Stable-Baselines3 needs a flattened action wrapper because the base environment
   exposes a tuple action space.

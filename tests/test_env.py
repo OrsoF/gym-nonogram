@@ -31,6 +31,8 @@ def test_generate_left_top_grids_shape():
 
     assert left_grid.shape == (3, 2)
     assert top_grid.shape == (2, 3)
+    assert np.array_equal(left_grid, np.array([[1, 1], [0, 2], [0, 1]]))
+    assert np.array_equal(top_grid, np.array([[0, 0, 1], [2, 1, 1]]))
 
 
 def test_env_reset_and_step():
@@ -47,7 +49,7 @@ def test_env_reset_and_step():
     assert reward == 100
     assert not terminated
     assert not truncated
-    assert info == {}
+    assert info == {"correct": True}
     assert observation[env.small_grid_size, env.small_grid_size] > 0
 
 
@@ -60,3 +62,20 @@ def test_env_truncates_at_max_step():
     assert env.observation_space.contains(observation)
     assert not terminated
     assert truncated
+
+
+def test_wrong_action_records_player_mark_not_solution():
+    env = Nonogram(central_grid_size=3, seed=1, max_step=10)
+    env.reset()
+    row = 0
+    col = 0
+    solution_value = int(env.solution_grid[env.small_grid_size, env.small_grid_size])
+    wrong_value = 1 - solution_value
+
+    observation, reward, terminated, truncated, info = env.step((row, col, wrong_value))
+
+    assert reward == -20
+    assert not terminated
+    assert not truncated
+    assert info == {"correct": False}
+    assert observation[env.small_grid_size, env.small_grid_size] == wrong_value + 1

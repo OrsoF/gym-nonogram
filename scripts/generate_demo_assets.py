@@ -1,5 +1,4 @@
 from pathlib import Path
-from time import perf_counter
 
 import matplotlib
 
@@ -48,6 +47,7 @@ def draw_board(state, small_grid_size, path):
 
 
 def run_rollout(env):
+    env.action_space.seed(7)
     state, info = env.reset()
     frames = [state.copy()]
     rewards = []
@@ -94,8 +94,9 @@ def benchmark():
     rows = []
     for size in [3, 5, 7]:
         env = Nonogram(central_grid_size=size, seed=7, max_step=size * size)
-        start = perf_counter()
+        env.action_space.seed(size)
         total_reward = 0
+        total_steps = 0
         episodes = 100
         for _ in range(episodes):
             state, info = env.reset()
@@ -106,8 +107,8 @@ def benchmark():
                     env.action_space.sample()
                 )
                 total_reward += reward
-        elapsed = perf_counter() - start
-        rows.append((size, episodes, elapsed, total_reward / episodes))
+                total_steps += 1
+        rows.append((size, episodes, total_steps / episodes, total_reward / episodes))
     return rows
 
 
@@ -117,12 +118,12 @@ def save_benchmark(rows, path):
         "",
         "Random-agent smoke benchmark on generated puzzles.",
         "",
-        "| Grid size | Episodes | Runtime (s) | Mean reward |",
+        "| Grid size | Episodes | Mean steps | Mean reward |",
         "| --- | ---: | ---: | ---: |",
     ]
-    for size, episodes, elapsed, mean_reward in rows:
+    for size, episodes, mean_steps, mean_reward in rows:
         lines.append(
-            f"| {size}x{size} | {episodes} | {elapsed:.3f} | {mean_reward:.1f} |"
+            f"| {size}x{size} | {episodes} | {mean_steps:.1f} | {mean_reward:.1f} |"
         )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -132,10 +133,12 @@ def main():
 
     env = Nonogram(central_grid_size=5, seed=7, max_step=25)
     frames, _rewards, _terminated, _truncated = run_rollout(env)
+    solved_state = env.solution_grid.copy()
+    solved_state[env.small_grid_size :, env.small_grid_size :] += 1
 
     draw_board(frames[0], env.small_grid_size, ASSET_DIR / "board_initial.png")
     draw_board(frames[-1], env.small_grid_size, ASSET_DIR / "board_rollout_final.png")
-    draw_board(env.solution_grid, env.small_grid_size, ASSET_DIR / "sample_solved.png")
+    draw_board(solved_state, env.small_grid_size, ASSET_DIR / "sample_solved.png")
     save_gif(frames, env, ASSET_DIR / "rollout.gif")
     save_learning_curve(ASSET_DIR / "learning_curve_example.png")
     save_benchmark(benchmark(), Path("docs/benchmark.md"))

@@ -3,7 +3,7 @@ from gymnasium import Env
 from gymnasium.spaces import Box, Discrete, Tuple
 
 
-def generate_count(line: list) -> list:
+def generate_count(line: list[int] | np.ndarray) -> list[int]:
     """
     Count the number of ones in a row for each series of 1.
     """
@@ -32,9 +32,11 @@ def generate_left_top_grids(central_grid: np.ndarray) -> tuple[np.ndarray, np.nd
 
     for i in range(grid_size):
         res_horizontal = generate_count(central_grid[i])
-        left_grid[i][: len(res_horizontal)] = res_horizontal
+        if res_horizontal:
+            left_grid[i][-len(res_horizontal) :] = res_horizontal
         res_vertical = generate_count(central_grid[:, i])
-        top_grid[:, i][: len(res_vertical)] = res_vertical
+        if res_vertical:
+            top_grid[:, i][-len(res_vertical) :] = res_vertical
     return left_grid, top_grid
 
 
@@ -134,32 +136,27 @@ class Nonogram(Env):
     def step(self, action):
         row_coord, col_coord, action_choosed = action
         self.steps_played += 1
+        info: dict[str, object] = {}
+        state_row = self.small_grid_size + row_coord
+        state_col = self.small_grid_size + col_coord
+        solution_value = self.solution_grid[state_row, state_col]
+        chosen_value = action_choosed + 1
 
-        if (
-            self.state[
-                self.small_grid_size + row_coord, self.small_grid_size + col_coord
-            ]
-            > 0
-        ):
+        if self.state[state_row, state_col] > 0:
             # Already played this square
             obs = self.state
             reward = 0
             terminated = False
             truncated = False
-            info = {}
+            info = {"already_played": True}
 
-        elif (
-            self.solution_grid[
-                self.small_grid_size + row_coord, self.small_grid_size + col_coord
-            ]
-            == action_choosed
-        ):
+        elif solution_value == action_choosed:
             # Action is ok
             obs = self.state
             reward = 100
             terminated = False
             truncated = False
-            info = {}
+            info = {"correct": True}
 
         else:
             # Action is wrong
@@ -167,20 +164,21 @@ class Nonogram(Env):
             reward = -20
             terminated = False
             truncated = False
-            info = {}
+            info = {"correct": False}
             self.number_of_loss += 1
 
         # Update grid
-        self.state[
-            self.small_grid_size + row_coord, self.small_grid_size + col_coord
-        ] = (
-            self.solution_grid[
-                self.small_grid_size + row_coord, self.small_grid_size + col_coord
-            ]
-            + 1
-        )
+        if not info.get("already_played"):
+            self.state[state_row, state_col] = chosen_value
 
-        if self.number_of_loss == 3:
+        player_grid = self.state[self.small_grid_size :, self.small_grid_size :]
+        solution_grid = self.solution_grid[
+            self.small_grid_size :, self.small_grid_size :
+        ]
+        all_cells_played = np.min(player_grid) > 0
+        solved = np.array_equal(player_grid, solution_grid + 1)
+
+        if self.number_of_loss >= 3:
             # Maxmimum number of loss
             obs = self.state
             reward = -100
@@ -188,20 +186,28 @@ class Nonogram(Env):
             truncated = False
             info = {}
 
-        if self.steps_played == self.max_step:
-            # Max step reached
-            obs = self.state
-            reward = 0
-            terminated = False
-            truncated = True
-            info = {}
-
-        if np.min(self.state[self.small_grid_size :, self.small_grid_size :]) > 0:
+        elif all_cells_played and solved:
             # End of the grid
             obs = self.state
             reward = 0
             terminated = True
             truncated = False
+            info = {"solved": True}
+
+        elif all_cells_played:
+            # The grid is full, but at least one mark is wrong.
+            obs = self.state
+            reward = -100
+            terminated = True
+            truncated = False
+            info = {"solved": False}
+
+        elif self.steps_played >= self.max_step:
+            # Max step reached
+            obs = self.state
+            reward = 0
+            terminated = False
+            truncated = True
             info = {}
 
         return obs, reward, terminated, truncated, info
