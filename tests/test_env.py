@@ -2,8 +2,8 @@ import numpy as np
 
 from gym_nonogram.env import (
     Nonogram,
-    generate_count,
     generate_central_grid,
+    generate_count,
     generate_left_top_grids,
 )
 

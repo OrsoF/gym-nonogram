@@ -1,7 +1,6 @@
-from gymnasium import Env
-from gymnasium.spaces import Discrete, Box, Tuple
 import numpy as np
-
+from gymnasium import Env
+from gymnasium.spaces import Box, Discrete, Tuple
 
 
 def generate_count(line: list) -> list:
@@ -43,7 +42,7 @@ def left_top_central_grid_to_extended_grid(
     left_grid: np.ndarray, top_grid: np.ndarray, central_grid: np.ndarray
 ) -> np.ndarray:
     """
-    Let us consider a nonogram with a central grid and the top and left grid that describe the central one.
+    Let us consider a nonogram with a central grid and clue grids.
     We combine it as:
     (left, top, central) -> (0, top \\ left, central)
     """
@@ -100,9 +99,13 @@ class Nonogram(Env):
             (Discrete(central_grid_size), Discrete(central_grid_size), Discrete(2))
         )  # First coord, second coord, action
         self.observation_space = Box(
-            low=np.zeros((self.extended_grid_size, self.extended_grid_size), dtype=np.int8),
+            low=np.zeros(
+                (self.extended_grid_size, self.extended_grid_size), dtype=np.int8
+            ),
             high=self.central_grid_size
-            * np.ones((self.extended_grid_size, self.extended_grid_size), dtype=np.int8),
+            * np.ones(
+                (self.extended_grid_size, self.extended_grid_size), dtype=np.int8
+            ),
             dtype=np.int8,
         )
 

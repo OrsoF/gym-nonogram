@@ -1,10 +1,11 @@
 from gymnasium.envs.registration import register
-from .env import Nonogram
+
+from .env import Nonogram as Nonogram
 
 register(
-    id='Nonogram-v0',
-    entry_point='gym_nonogram.env:Nonogram',
+    id="Nonogram-v0",
+    entry_point="gym_nonogram.env:Nonogram",
     kwargs={
-        'central_grid_size': 5,
-    }
+        "central_grid_size": 5,
+    },
 )

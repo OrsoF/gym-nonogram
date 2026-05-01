@@ -1,3 +1,7 @@
 pytest
+black
+ruff
+mypy
 matplotlib
 notebook
+pillow
